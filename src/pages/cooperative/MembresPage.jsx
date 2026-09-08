@@ -170,35 +170,74 @@ export default function MembresPage() {
       </Modal>
 
       {/* Modal Consultation Membre */}
-      {selectedMembre && (
-        <Modal
-          isOpen={!!selectedMembre}
-          onClose={() => setSelectedMembre(null)}
-          title={`Fiche membre — ${selectedMembre.prenom} ${selectedMembre.nom}`}
-        >
-          <div className="space-y-4 text-sm">
-            <div className="flex justify-between py-2 border-b border-gray-100">
-              <span className="text-muted">Téléphone:</span>
-              <span className="font-semibold">{selectedMembre.telephone}</span>
+      {selectedMembre && (() => {
+        const memberCampagnes = DataService.list('campagnes', { userId: selectedMembre.id })
+        const memberProductions = DataService.list('productions', { userId: selectedMembre.id })
+        const totalQuantite = memberProductions.reduce((acc, p) => acc + (Number(p.quantite) || 0), 0)
+
+        return (
+          <Modal
+            isOpen={!!selectedMembre}
+            onClose={() => setSelectedMembre(null)}
+            title={`Fiche membre — ${selectedMembre.prenom} ${selectedMembre.nom}`}
+          >
+            <div className="space-y-4 text-sm">
+              <div className="grid grid-cols-2 gap-3 p-3 bg-gray-50 rounded-lg">
+                <div>
+                  <span className="text-xs text-muted block">Téléphone</span>
+                  <span className="font-semibold">{selectedMembre.telephone}</span>
+                </div>
+                <div>
+                  <span className="text-xs text-muted block">Email</span>
+                  <span className="font-semibold">{selectedMembre.email || '-'}</span>
+                </div>
+                <div>
+                  <span className="text-xs text-muted block">Localisation</span>
+                  <span className="font-semibold">{selectedMembre.commune || selectedMembre.localisation || 'Maritime'}</span>
+                </div>
+                <div>
+                  <span className="text-xs text-muted block">Cumul Apports Totaux</span>
+                  <span className="font-bold text-primary">{totalQuantite > 0 ? `${totalQuantite.toLocaleString('fr-FR')} kg` : '0 kg'}</span>
+                </div>
+              </div>
+
+              {/* Historique des apports par campagne / culture */}
+              <div>
+                <h4 className="font-bold text-xs uppercase tracking-wider text-gray-600 mb-2">Historique des Apports par Campagne</h4>
+                {memberCampagnes.length === 0 ? (
+                  <p className="text-xs text-muted italic">Aucune campagne enregistrée pour ce membre.</p>
+                ) : (
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {memberCampagnes.map(c => {
+                      const prods = memberProductions.filter(p => p.campagneId === c.id)
+                      const qteCampagne = prods.reduce((a, b) => a + (Number(b.quantite) || 0), 0)
+                      return (
+                        <div key={c.id} className="p-2.5 rounded border border-gray-200 bg-white flex items-center justify-between text-xs">
+                          <div>
+                            <span className="font-semibold text-gray-800">{c.nom}</span>
+                            <span className="text-muted ml-2">({c.culture || 'Culture non spécifiée'} - {c.superficie || 0} ha)</span>
+                          </div>
+                          <span className="badge badge-success font-bold">
+                            {qteCampagne > 0 ? `${qteCampagne.toLocaleString('fr-FR')} kg` : (c.rendementEstime ? `Est. ${c.rendementEstime} kg` : '0 kg')}
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="p-3 bg-green-50 rounded-lg text-xs text-green-900 border border-green-200">
+                <p className="font-bold mb-1">Autorisations de partage accordées par l'exploitant :</p>
+                <p>✔ Profil de l'exploitation</p>
+                <p>✔ Superficie, cultures et historique des apports</p>
+                <p>✔ Volume de production réel et estimé</p>
+                <p className="text-gray-500 italic mt-1">✖ Les dépenses et recettes privées restent masquées.</p>
+              </div>
             </div>
-            <div className="flex justify-between py-2 border-b border-gray-100">
-              <span className="text-muted">Email:</span>
-              <span className="font-semibold">{selectedMembre.email || '-'}</span>
-            </div>
-            <div className="flex justify-between py-2 border-b border-gray-100">
-              <span className="text-muted">Localisation:</span>
-              <span className="font-semibold">{selectedMembre.commune || 'Maritime'}</span>
-            </div>
-            <div className="p-3 bg-green-50 rounded-lg text-xs text-green-900 border border-green-200">
-              <p className="font-bold mb-1">Autorisations de partage accordées par l'exploitant :</p>
-              <p>✔ Profil de l'exploitation</p>
-              <p>✔ Superficie et culture</p>
-              <p>✔ Volume de production estimé</p>
-              <p className="text-gray-500 italic mt-1">✖ Les dépenses et recettes privées restent masquées.</p>
-            </div>
-          </div>
-        </Modal>
-      )}
+          </Modal>
+        )
+      })()}
     </div>
   )
 }
