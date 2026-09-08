@@ -56,9 +56,9 @@ export default function CyclesElevagePage() {
   }
 
   const handleDelete = (id) => {
-    if (window.confirm('Supprimer ce cycle d’élevage ?')) {
+    if (window.confirm("Supprimer ce cycle d'élevage ?")) {
       DataService.delete('cycles_elevage', id)
-      addToast('Cycle d’élevage supprimé', 'info')
+      addToast("Cycle d'élevage supprimé", 'info')
       loadData()
     }
   }
@@ -69,10 +69,10 @@ export default function CyclesElevagePage() {
 
     if (editingId) {
       DataService.update('cycles_elevage', editingId, payload)
-      addToast('Cycle d’élevage mis à jour', 'success')
+      addToast("Cycle d'élevage mis à jour", 'success')
     } else {
       DataService.create('cycles_elevage', payload)
-      addToast('Nouveau cycle d’élevage créé !', 'success')
+      addToast("Nouveau cycle d'élevage créé !", 'success')
     }
     setIsModalOpen(false)
     loadData()
@@ -155,7 +155,7 @@ export default function CyclesElevagePage() {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={editingId ? 'Modifier le cycle' : 'Nouveau cycle d’élevage'}
+        title={editingId ? 'Modifier le cycle' : "Nouveau cycle d'élevage"}
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="form-group">

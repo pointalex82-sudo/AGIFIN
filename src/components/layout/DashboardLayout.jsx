@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useNotification } from '../../contexts/NotificationContext'
@@ -37,6 +37,20 @@ export default function DashboardLayout({ children }) {
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [userDropdownOpen, setUserDropdownOpen] = useState(false)
+  const dropdownRef = useRef(null)
+
+  // Ferme le dropdown en cliquant en dehors
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setUserDropdownOpen(false)
+      }
+    }
+    if (userDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [userDropdownOpen])
 
   const isCoop = user?.role === 'cooperative'
 
@@ -139,14 +153,16 @@ export default function DashboardLayout({ children }) {
         </nav>
 
         <div className="sidebar-footer">
-          <Link
-            to="/dashboard/profil"
-            className={`sidebar-link ${isActive('/dashboard/profil') ? 'active' : ''}`}
-            onClick={() => setSidebarOpen(false)}
-          >
-            <User size={20} />
-            <span>Mon Profil</span>
-          </Link>
+          {!isCoop && (
+            <Link
+              to="/dashboard/profil"
+              className={`sidebar-link ${isActive('/dashboard/profil') ? 'active' : ''}`}
+              onClick={() => setSidebarOpen(false)}
+            >
+              <User size={20} />
+              <span>Mon Profil</span>
+            </Link>
+          )}
           <button className="sidebar-link text-danger" onClick={handleLogout}>
             <LogOut size={20} />
             <span>Déconnexion</span>
@@ -175,16 +191,18 @@ export default function DashboardLayout({ children }) {
         </div>
 
         <div className="dashboard-header-right">
-          {/* Notifications Button */}
-          <Link to="/dashboard/notifications" className="btn btn-ghost btn-icon relative">
-            <Bell size={20} />
-            {unreadCount > 0 && (
-              <span className="notification-badge">{unreadCount}</span>
-            )}
-          </Link>
+          {/* Notifications Button — masqué pour les coops */}
+          {!isCoop && (
+            <Link to="/dashboard/notifications" className="btn btn-ghost btn-icon relative">
+              <Bell size={20} />
+              {unreadCount > 0 && (
+                <span className="notification-badge">{unreadCount}</span>
+              )}
+            </Link>
+          )}
 
           {/* User Profile Dropdown */}
-          <div className="dropdown">
+          <div className="dropdown" ref={dropdownRef}>
             <button
               className="flex items-center gap-2 btn btn-ghost btn-sm"
               onClick={() => setUserDropdownOpen(!userDropdownOpen)}

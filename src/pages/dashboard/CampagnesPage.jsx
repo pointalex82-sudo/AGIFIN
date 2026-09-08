@@ -106,7 +106,26 @@ export default function CampagnesPage() {
     },
     {
       header: 'Période',
-      render: (r) => `${formatDate(r.dateDebut)} → ${formatDate(r.dateFinPrevue)}`,
+      render: (r) => {
+        const debut = r.dateDebut ? new Date(r.dateDebut) : null
+        const fin = r.dateFinPrevue ? new Date(r.dateFinPrevue) : null
+        const now = new Date()
+        let restant = null
+        if (fin && r.statut === 'en_cours') {
+          const diffDays = Math.ceil((fin - now) / (1000 * 60 * 60 * 24))
+          restant = diffDays
+        }
+        return (
+          <div>
+            <p className="text-xs">{formatDate(r.dateDebut)} → {formatDate(r.dateFinPrevue)}</p>
+            {restant !== null && (
+              <p className={`text-xs font-semibold mt-0.5 ${restant < 0 ? 'text-danger' : restant < 14 ? 'text-warning' : 'text-muted'}`}>
+                {restant < 0 ? `Dépassé de ${Math.abs(restant)}j` : `J-${restant} restants`}
+              </p>
+            )}
+          </div>
+        )
+      },
     },
     {
       header: 'Résultat Fin.',
@@ -150,7 +169,7 @@ export default function CampagnesPage() {
       <div className="page-header-row">
         <div>
           <h1 className="page-title">Mes Campagnes Agricoles</h1>
-          <p className="page-subtitle">Planifiez et rachetez toutes vos dépenses et recettes par campagne.</p>
+          <p className="page-subtitle">Planifiez et retracez toutes vos dépenses et recettes par campagne.</p>
         </div>
         <button className="btn btn-primary" onClick={handleOpenCreate}>
           <Plus size={18} /> Créer une campagne

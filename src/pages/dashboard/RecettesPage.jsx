@@ -51,7 +51,11 @@ export default function RecettesPage() {
   useEffect(() => {
     const q = Number(formData.quantite) || 0
     const pu = Number(formData.prixUnitaire) || 0
-    setFormData(prev => ({ ...prev, montantTotal: q * pu }))
+    const total = q * pu
+    if (total !== formData.montantTotal) {
+      setFormData(prev => ({ ...prev, montantTotal: total }))
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.quantite, formData.prixUnitaire])
 
   const handleOpenCreate = () => {

@@ -5,12 +5,13 @@ import CalculService from '../../services/CalculService'
 import { formatMontant, formatPourcentage } from '../../utils/formatters'
 import BarChart from '../../components/charts/BarChart'
 import DoughnutChart from '../../components/charts/DoughnutChart'
-import { TrendingUp, Award, DollarSign, Percent } from 'lucide-react'
+import { TrendingUp, Award, DollarSign, Percent, Activity } from 'lucide-react'
 
 export default function RentabilitePage() {
   const { user } = useAuth()
   const [campagnesComparaison, setCampagnesComparaison] = useState([])
   const [repartitionDepenses, setRepartitionDepenses] = useState({})
+  const [productions, setProductions] = useState([])
 
   useEffect(() => {
     if (user) {
@@ -19,6 +20,9 @@ export default function RentabilitePage() {
 
       const rep = CalculService.repartitionDepenses(user.id)
       setRepartitionDepenses(rep)
+
+      const prods = DataService.list('productions', { userId: user.id })
+      setProductions(prods)
     }
   }, [user])
 
@@ -88,6 +92,7 @@ export default function RentabilitePage() {
                 <th>Campagne</th>
                 <th>Culture</th>
                 <th>Superficie</th>
+                <th>Rendement/ha</th>
                 <th>Dépenses Totales</th>
                 <th>Recettes Totales</th>
                 <th>Résultat Net</th>
@@ -95,23 +100,35 @@ export default function RentabilitePage() {
               </tr>
             </thead>
             <tbody>
-              {campagnesComparaison.map((c) => (
-                <tr key={c.id}>
-                  <td data-label="Campagne" className="font-bold">{c.nom}</td>
-                  <td data-label="Culture">{c.culture}</td>
-                  <td data-label="Superficie">{c.superficie} ha</td>
-                  <td data-label="Dépenses" className="text-danger font-medium">-{formatMontant(c.depenses)}</td>
-                  <td data-label="Recettes" className="text-success font-medium">+{formatMontant(c.recettes)}</td>
-                  <td data-label="Résultat" className={`font-bold ${c.resultat >= 0 ? 'text-success' : 'text-danger'}`}>
-                    {formatMontant(c.resultat)}
-                  </td>
-                  <td data-label="Marge Brute %">
-                    <span className={`badge ${c.marge > 0 ? 'badge-success' : 'badge-danger'}`}>
-                      {formatPourcentage(c.marge)}
-                    </span>
-                  </td>
-                </tr>
-              ))}
+              {campagnesComparaison.map((c) => {
+                const prodsCampagne = productions.filter(p => p.campagneId === c.id)
+                const totalQte = prodsCampagne.reduce((sum, p) => sum + (Number(p.quantite) || 0), 0)
+                const rendementHa = c.superficie && totalQte ? (totalQte / Number(c.superficie)).toFixed(0) : null
+                const margeColor = c.marge > 20 ? 'badge-success' : c.marge > 0 ? 'badge-warning' : 'badge-danger'
+                return (
+                  <tr key={c.id}>
+                    <td data-label="Campagne" className="font-bold">{c.nom}</td>
+                    <td data-label="Culture">{c.culture}</td>
+                    <td data-label="Superficie">{c.superficie} ha</td>
+                    <td data-label="Rendement/ha">
+                      {rendementHa
+                        ? <span className="font-medium text-primary">{Number(rendementHa).toLocaleString('fr-FR')} kg/ha</span>
+                        : <span className="text-muted text-xs">N/A</span>
+                      }
+                    </td>
+                    <td data-label="Dépenses" className="text-danger font-medium">-{formatMontant(c.depenses)}</td>
+                    <td data-label="Recettes" className="text-success font-medium">+{formatMontant(c.recettes)}</td>
+                    <td data-label="Résultat" className={`font-bold ${c.resultat >= 0 ? 'text-success' : 'text-danger'}`}>
+                      {formatMontant(c.resultat)}
+                    </td>
+                    <td data-label="Marge Brute %">
+                      <span className={`badge ${margeColor}`}>
+                        {formatPourcentage(c.marge)}
+                      </span>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>

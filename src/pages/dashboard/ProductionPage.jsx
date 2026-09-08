@@ -38,6 +38,21 @@ export default function ProductionPage() {
     loadData()
   }, [user])
 
+  const handleOpenEdit = (prod) => {
+    setEditingId(prod.id)
+    setFormData({
+      date: prod.date,
+      produit: prod.produit,
+      quantite: prod.quantite,
+      unite: prod.unite,
+      destination: prod.destination,
+      quantiteVendue: prod.quantiteVendue || '',
+      quantiteRestante: prod.quantiteRestante || '',
+      campagneId: prod.campagneId || '',
+    })
+    setIsModalOpen(true)
+  }
+
   const handleOpenCreate = () => {
     setEditingId(null)
     setFormData({
@@ -104,9 +119,14 @@ export default function ProductionPage() {
       header: 'Actions',
       align: 'right',
       render: (r) => (
-        <button className="btn btn-ghost btn-icon btn-sm text-danger" onClick={() => handleDelete(r.id)}>
-          <Trash2 size={16} />
-        </button>
+        <div className="flex justify-end gap-2">
+          <button className="btn btn-ghost btn-icon btn-sm" onClick={() => handleOpenEdit(r)}>
+            <Edit size={16} />
+          </button>
+          <button className="btn btn-ghost btn-icon btn-sm text-danger" onClick={() => handleDelete(r.id)}>
+            <Trash2 size={16} />
+          </button>
+        </div>
       ),
     },
   ]
@@ -135,7 +155,7 @@ export default function ProductionPage() {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="Enregistrer une récolte / production"
+        title={editingId ? 'Modifier la production' : 'Enregistrer une récolte / production'}
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="form-group">
