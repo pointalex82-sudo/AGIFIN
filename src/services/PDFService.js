@@ -88,9 +88,15 @@ const PDFService = {
       head: [['Date', 'Produit', 'Quantité', 'Montant']],
       body: recettesData,
       theme: 'striped',
-      headStyles: { fillColor: [46, 125, 50], fontSize: 9 },
-      bodyStyles: { fontSize: 8 },
-      footStyles: { fillColor: [232, 245, 233], textColor: [27, 94, 32], fontStyle: 'bold' },
+      headStyles: { fillColor: [46, 125, 50], fontSize: 9, halign: 'center' },
+      bodyStyles: { fontSize: 8, halign: 'center' },
+      columnStyles: {
+        0: { halign: 'center' },
+        1: { halign: 'center' },
+        2: { halign: 'center' },
+        3: { halign: 'center', fontStyle: 'bold' }
+      },
+      footStyles: { fillColor: [232, 245, 233], textColor: [27, 94, 32], fontStyle: 'bold', halign: 'center' },
       margin: { left: 15, right: 15 },
     })
 
@@ -117,8 +123,14 @@ const PDFService = {
       head: [['Date', 'Catégorie', 'Description', 'Montant']],
       body: depensesData,
       theme: 'striped',
-      headStyles: { fillColor: [229, 57, 53], fontSize: 9 },
-      bodyStyles: { fontSize: 8 },
+      headStyles: { fillColor: [229, 57, 53], fontSize: 9, halign: 'center' },
+      bodyStyles: { fontSize: 8, halign: 'center' },
+      columnStyles: {
+        0: { halign: 'center' },
+        1: { halign: 'center' },
+        2: { halign: 'center' },
+        3: { halign: 'center', fontStyle: 'bold' }
+      },
       margin: { left: 15, right: 15 },
     })
 

@@ -119,7 +119,9 @@ export default function App() {
           <Route path="/dashboard/rentabilite" element={<ProtectedRoute><RentabilitePage /></ProtectedRoute>} />
           <Route path="/dashboard/historique" element={<ProtectedRoute><HistoriquePage /></ProtectedRoute>} />
           <Route path="/dashboard/documents" element={<ProtectedRoute><DocumentsPage /></ProtectedRoute>} />
+          <Route path="/dashboard/compte-exploitation" element={<ProtectedRoute><DocumentsPage /></ProtectedRoute>} />
           <Route path="/dashboard/financement" element={<ProtectedRoute><FinancementPage /></ProtectedRoute>} />
+          <Route path="/dashboard/demande-credit" element={<ProtectedRoute><FinancementPage /></ProtectedRoute>} />
           <Route path="/dashboard/profil" element={<ProtectedRoute><ProfilPage /></ProtectedRoute>} />
           <Route path="/dashboard/parametres" element={<ProtectedRoute><ParametresPage /></ProtectedRoute>} />
           <Route path="/dashboard/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
