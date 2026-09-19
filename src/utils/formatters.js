@@ -9,7 +9,7 @@ export function formatMontant(montant) {
   const formatted = new Intl.NumberFormat('fr-FR', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(Math.round(num))
+  }).format(Math.round(num)).replace(/[\u202f\u00a0]/g, ' ')
   return `${formatted} ${DEVISE}`
 }
 
@@ -21,7 +21,7 @@ export function formatNombre(nombre) {
   return new Intl.NumberFormat('fr-FR', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
-  }).format(Number(nombre))
+  }).format(Number(nombre)).replace(/[\u202f\u00a0]/g, ' ')
 }
 
 /**
