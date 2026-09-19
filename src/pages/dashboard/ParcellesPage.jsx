@@ -123,7 +123,13 @@ export default function ParcellesPage() {
           columns={columns}
           data={parcelles}
           emptyTitle="Aucune parcelle créée"
-          emptyDescription="Ajoutez votre première parcelle pour pouvoir créer des campagnes agricoles."
+          emptyDescription="Ajoutez votre première parcelle pour pouvoir créer des campagnes agricoles et suivre vos cultures."
+          emptyIcon={Map}
+          emptyAction={
+            <button className="btn btn-primary" onClick={handleOpenCreate}>
+              <Plus size={16} /> Ajouter ma première parcelle
+            </button>
+          }
         />
       </div>
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { useAuth } from '../../contexts/AuthContext'
+import { useAuth, useActivite } from '../../contexts/AuthContext'
 import DataService from '../../services/DataService'
 import { formatMontant, formatDate } from '../../utils/formatters'
 import { useNotification } from '../../contexts/NotificationContext'
@@ -9,8 +9,23 @@ import DataTable from '../../components/ui/DataTable'
 import { ArrowDownCircle, Plus, Edit, Trash2, Filter } from 'lucide-react'
 import { CATEGORIES_DEPENSES } from '../../utils/constants'
 
+// Catégories spécifiques à l'agriculture
+const CATS_AGRI = ['semences', 'engrais', 'phytosanitaires', 'irrigation']
+// Catégories spécifiques à l'élevage
+const CATS_ELEVAGE = ['alimentation_animale', 'medicaments']
+// Catégories communes
+const CATS_COMMUNES = ['main_oeuvre', 'carburant', 'transport', 'location', 'materiel', 'entretien', 'energie', 'autres']
+
 export default function DepensesPage() {
   const { user } = useAuth()
+  const { isAgri, isElevage } = useActivite()
+
+  // Catégories filtrées selon l'activité
+  const categoriesFiltrees = CATEGORIES_DEPENSES.filter(c => {
+    if (CATS_AGRI.includes(c.value)) return isAgri
+    if (CATS_ELEVAGE.includes(c.value)) return isElevage
+    return true // communes
+  })
   const { addToast } = useNotification()
   const [searchParams] = useSearchParams()
 
@@ -179,7 +194,7 @@ export default function DepensesPage() {
           onChange={(e) => setFilterCat(e.target.value)}
         >
           <option value="">Toutes les catégories</option>
-          {CATEGORIES_DEPENSES.map((c) => (
+          {categoriesFiltrees.map((c) => (
             <option key={c.value} value={c.value}>{c.label}</option>
           ))}
         </select>
@@ -234,39 +249,45 @@ export default function DepensesPage() {
               value={formData.categorie}
               onChange={(e) => setFormData({ ...formData, categorie: e.target.value })}
             >
-              {CATEGORIES_DEPENSES.map((c) => (
+              {categoriesFiltrees.map((c) => (
                 <option key={c.value} value={c.value}>{c.label}</option>
               ))}
             </select>
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Rattacher à une campagne (Optionnel)</label>
-            <select
-              className="form-select"
-              value={formData.campagneId}
-              onChange={(e) => setFormData({ ...formData, campagneId: e.target.value, cycleId: '' })}
-            >
-              <option value="">Aucune (Dépense générale)</option>
-              {campagnes.map((c) => (
-                <option key={c.id} value={c.id}>{c.nom} ({c.culture})</option>
-              ))}
-            </select>
-          </div>
+          {/* Rattacher à une campagne — agriculture seulement */}
+          {isAgri && campagnes.length > 0 && (
+            <div className="form-group">
+              <label className="form-label">Rattacher à une campagne (Optionnel)</label>
+              <select
+                className="form-select"
+                value={formData.campagneId}
+                onChange={(e) => setFormData({ ...formData, campagneId: e.target.value, cycleId: '' })}
+              >
+                <option value="">Aucune (Dépense générale)</option>
+                {campagnes.map((c) => (
+                  <option key={c.id} value={c.id}>{c.nom} ({c.culture})</option>
+                ))}
+              </select>
+            </div>
+          )}
 
-          <div className="form-group">
-            <label className="form-label">Rattacher à un cycle d'élevage (Optionnel)</label>
-            <select
-              className="form-select"
-              value={formData.cycleId}
-              onChange={(e) => setFormData({ ...formData, cycleId: e.target.value, campagneId: '' })}
-            >
-              <option value="">Aucun</option>
-              {cycles.map((cy) => (
-                <option key={cy.id} value={cy.id}>{cy.nom} ({cy.typeElevage})</option>
-              ))}
-            </select>
-          </div>
+          {/* Rattacher à un cycle d'élevage — élevage seulement */}
+          {isElevage && cycles.length > 0 && (
+            <div className="form-group">
+              <label className="form-label">Rattacher à un cycle d'élevage (Optionnel)</label>
+              <select
+                className="form-select"
+                value={formData.cycleId}
+                onChange={(e) => setFormData({ ...formData, cycleId: e.target.value, campagneId: '' })}
+              >
+                <option value="">Aucun</option>
+                {cycles.map((cy) => (
+                  <option key={cy.id} value={cy.id}>{cy.nom} ({cy.typeElevage})</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="form-group">
             <label className="form-label">Description / Détails</label>

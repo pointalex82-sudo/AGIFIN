@@ -62,8 +62,10 @@ export function AuthProvider({ children }) {
     const user = DataService.create('users', {
       ...userData,
       role: userData.role || 'exploitant',
+      typeActivite: '',       // sera rempli à l'onboarding
+      onboardingDone: false,  // flag pour savoir si l'onboarding est complété
     })
-    // Créer une exploitation par défaut
+    // Créer une exploitation par défaut — sera enrichie à l'onboarding
     DataService.create('exploitations', {
       userId: user.id,
       nom: `Exploitation de ${userData.prenom || userData.nom || ''}`.trim(),
@@ -91,6 +93,33 @@ export function AuthProvider({ children }) {
     }
   }
 
+  /**
+   * Complète l'onboarding : enregistre typeActivite + infos exploitation
+   */
+  const completeOnboarding = ({ typeActivite, nomExploitation, localisation, superficie }) => {
+    if (!state.user) return
+
+    // Mettre à jour le user
+    const updatedUser = DataService.update('users', state.user.id, {
+      typeActivite,
+      onboardingDone: true,
+    })
+    dispatch({ type: 'UPDATE_USER', payload: { typeActivite, onboardingDone: true } })
+
+    // Mettre à jour l'exploitation existante
+    const exploitations = DataService.list('exploitations', { userId: state.user.id })
+    if (exploitations.length > 0) {
+      DataService.update('exploitations', exploitations[0].id, {
+        nom: nomExploitation || exploitations[0].nom,
+        typeActivite,
+        localisation,
+        superficie,
+      })
+    }
+
+    return updatedUser
+  }
+
   return (
     <AuthContext.Provider value={{
       ...state,
@@ -98,6 +127,7 @@ export function AuthProvider({ children }) {
       register,
       logout,
       updateProfile,
+      completeOnboarding,
     }}>
       {children}
     </AuthContext.Provider>
@@ -108,6 +138,22 @@ export function useAuth() {
   const ctx = useContext(AuthContext)
   if (!ctx) throw new Error('useAuth must be used within AuthProvider')
   return ctx
+}
+
+/**
+ * Hook utilitaire — retourne les flags d'activité du user connecté
+ * Usage : const { isAgri, isElevage, isMixte } = useActivite()
+ */
+export function useActivite() {
+  const { user } = useAuth()
+  const type = user?.typeActivite || ''
+  return {
+    typeActivite: type,
+    isAgri: type === 'agriculture' || type === 'mixte',
+    isElevage: type === 'elevage' || type === 'mixte',
+    isMixte: type === 'mixte',
+    isSet: !!type,
+  }
 }
 
 export default AuthContext

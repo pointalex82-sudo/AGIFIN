@@ -12,6 +12,7 @@ import ContactPage from './pages/public/ContactPage'
 import FAQPage from './pages/public/FAQPage'
 import LoginPage from './pages/auth/LoginPage'
 import RegisterPage from './pages/auth/RegisterPage'
+import OnboardingPage from './pages/auth/OnboardingPage'
 
 // Farmer Dashboard Pages
 import DashboardPage from './pages/dashboard/DashboardPage'
@@ -37,11 +38,33 @@ import MembresPage from './pages/cooperative/MembresPage'
 import CampagnesCollectives from './pages/cooperative/CampagnesCollectives'
 import BesoinsIntrants from './pages/cooperative/BesoinsIntrants'
 
+/**
+ * Route protégée : l'utilisateur doit être connecté.
+ * Si l'exploitant n'a pas complété l'onboarding → redirect vers /onboarding.
+ */
 function ProtectedRoute({ children }) {
-  const { isAuthenticated, loading } = useAuth()
+  const { isAuthenticated, loading, user } = useAuth()
   if (loading) return <div className="p-8 text-center"><div className="spinner mx-auto" /></div>
   if (!isAuthenticated) return <Navigate to="/connexion" replace />
+  // Exploitants sans onboarding → forcer l'onboarding
+  if (user?.role !== 'cooperative' && !user?.onboardingDone) {
+    return <Navigate to="/onboarding" replace />
+  }
   return <DashboardLayout>{children}</DashboardLayout>
+}
+
+/**
+ * Route onboarding : accessible uniquement si connecté et onboarding non complété.
+ */
+function OnboardingRoute() {
+  const { isAuthenticated, loading, user } = useAuth()
+  if (loading) return <div className="p-8 text-center"><div className="spinner mx-auto" /></div>
+  if (!isAuthenticated) return <Navigate to="/connexion" replace />
+  // Si déjà complété → aller au dashboard
+  if (user?.onboardingDone) {
+    return <Navigate to="/dashboard" replace />
+  }
+  return <OnboardingPage />
 }
 
 function ToastContainer() {
@@ -80,6 +103,9 @@ export default function App() {
           <Route path="/faq" element={<FAQPage />} />
           <Route path="/connexion" element={<LoginPage />} />
           <Route path="/inscription" element={<RegisterPage />} />
+
+          {/* Onboarding Route */}
+          <Route path="/onboarding" element={<OnboardingRoute />} />
 
           {/* Farmer Protected Dashboard Routes */}
           <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />

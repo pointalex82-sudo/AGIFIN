@@ -59,19 +59,19 @@ export default function CoopDashboard() {
 
   const chartDataCultures = cultureEntries.length > 0
     ? {
-        labels: cultureEntries.map(([k]) => k),
-        datasets: [{
-          data: cultureEntries.map(([, v]) => v),
-          backgroundColor: cultureEntries.map((_, i) => COLORS[i % COLORS.length]),
-        }],
-      }
+      labels: cultureEntries.map(([k]) => k),
+      datasets: [{
+        data: cultureEntries.map(([, v]) => v),
+        backgroundColor: cultureEntries.map((_, i) => COLORS[i % COLORS.length]),
+      }],
+    }
     : {
-        labels: ['Maïs', 'Soja', 'Maraîchage', 'Riz', 'Autres'],
-        datasets: [{
-          data: [180, 75, 65, 40, 20],
-          backgroundColor: COLORS,
-        }],
-      }
+      labels: ['Maïs', 'Soja', 'Maraîchage', 'Riz', 'Autres'],
+      datasets: [{
+        data: [180, 75, 65, 40, 20],
+        backgroundColor: COLORS,
+      }],
+    }
 
   // Graphique production (données historiques illustratives conservées
   // car non calculables sans identifiants de campagnes collectives)

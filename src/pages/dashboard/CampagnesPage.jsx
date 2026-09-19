@@ -182,6 +182,12 @@ export default function CampagnesPage() {
           data={campagnes}
           emptyTitle="Aucune campagne agricole"
           emptyDescription="Créez votre première campagne (ex: Campagne Maïs 2026) pour commencer l'enregistrement des opérations."
+          emptyIcon={Calendar}
+          emptyAction={
+            <button className="btn btn-primary" onClick={handleOpenCreate}>
+              <Plus size={16} /> Créer ma première campagne
+            </button>
+          }
         />
       </div>
 

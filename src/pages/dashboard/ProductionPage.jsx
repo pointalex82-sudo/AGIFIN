@@ -148,7 +148,13 @@ export default function ProductionPage() {
           columns={columns}
           data={productions}
           emptyTitle="Aucune production enregistrée"
-          emptyDescription="Ajoutez vos volumes de récoltes pour suivre les stocks et les rendements."
+          emptyDescription="Ajoutez vos volumes de récoltes pour suivre les stocks et calculer vos rendements automatiquement."
+          emptyIcon={Package}
+          emptyAction={
+            <button className="btn btn-primary" onClick={handleOpenCreate}>
+              <Plus size={16} /> Enregistrer ma première récolte
+            </button>
+          }
         />
       </div>
 

@@ -28,7 +28,7 @@ export default function RegisterPage() {
       if (formData.role === 'cooperative') {
         navigate('/cooperative/dashboard')
       } else {
-        navigate('/dashboard')
+        navigate('/onboarding')
       }
     } else {
       setError(res.error)

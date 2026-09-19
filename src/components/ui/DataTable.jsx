@@ -1,9 +1,23 @@
 import React from 'react'
 import EmptyState from './EmptyState'
 
-export default function DataTable({ columns, data, emptyTitle = 'Aucune donnée disponible', emptyDescription = 'Commencez par ajouter un enregistrement.' }) {
+export default function DataTable({
+  columns,
+  data,
+  emptyTitle = 'Aucune donnée disponible',
+  emptyDescription = 'Commencez par ajouter un enregistrement.',
+  emptyAction = null,
+  emptyIcon = undefined,
+}) {
   if (!data || data.length === 0) {
-    return <EmptyState title={emptyTitle} text={emptyDescription} />
+    return (
+      <EmptyState
+        title={emptyTitle}
+        text={emptyDescription}
+        icon={emptyIcon}
+        action={emptyAction}
+      />
+    )
   }
 
   return (

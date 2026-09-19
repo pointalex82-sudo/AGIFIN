@@ -178,7 +178,13 @@ export default function RecettesPage() {
           columns={columns}
           data={recettes}
           emptyTitle="Aucune recette enregistrée"
-          emptyDescription="Ajoutez votre première vente pour calculer vos marges et votre chiffre d'affaires."
+          emptyDescription="Ajoutez votre première vente pour calculer vos marges et votre chiffre d'affaires. Le total est calculé automatiquement."
+          emptyIcon={ArrowUpCircle}
+          emptyAction={
+            <button className="btn btn-primary" onClick={handleOpenCreate}>
+              <Plus size={16} /> Enregistrer une vente
+            </button>
+          }
         />
       </div>
 

@@ -149,6 +149,12 @@ export default function CyclesElevagePage() {
           data={cycles}
           emptyTitle="Aucun cycle d'élevage enregistré"
           emptyDescription="Ajoutez votre premier lot pour suivre la mortalité, le coût d'alimentation et les ventes."
+          emptyIcon={Bird}
+          emptyAction={
+            <button className="btn btn-primary" onClick={handleOpenCreate}>
+              <Plus size={16} /> Créer mon premier cycle
+            </button>
+          }
         />
       </div>
 
