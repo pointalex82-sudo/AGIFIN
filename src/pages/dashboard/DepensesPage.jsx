@@ -2,45 +2,47 @@ import React, { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useAuth, useActivite } from '../../contexts/AuthContext'
 import DataService from '../../services/DataService'
+import AtelierService from '../../services/AtelierService'
 import { formatMontant, formatDate } from '../../utils/formatters'
 import { useNotification } from '../../contexts/NotificationContext'
 import Modal from '../../components/ui/Modal'
 import DataTable from '../../components/ui/DataTable'
-import { ArrowDownCircle, Plus, Edit, Trash2, Filter } from 'lucide-react'
+import { ArrowDownCircle, Plus, Edit, Trash2, Filter, Layers } from 'lucide-react'
 import { CATEGORIES_DEPENSES } from '../../utils/constants'
 
 // Catégories spécifiques à l'agriculture
 const CATS_AGRI = ['semences', 'engrais', 'phytosanitaires', 'irrigation']
 // Catégories spécifiques à l'élevage
 const CATS_ELEVAGE = ['alimentation_animale', 'medicaments']
-// Catégories communes
-const CATS_COMMUNES = ['main_oeuvre', 'carburant', 'transport', 'location', 'materiel', 'entretien', 'energie', 'autres']
 
 export default function DepensesPage() {
   const { user } = useAuth()
   const { isAgri, isElevage } = useActivite()
+  const { addToast } = useNotification()
+  const [searchParams] = useSearchParams()
 
-  // Catégories filtrées selon l'activité
   const categoriesFiltrees = CATEGORIES_DEPENSES.filter(c => {
     if (CATS_AGRI.includes(c.value)) return isAgri
     if (CATS_ELEVAGE.includes(c.value)) return isElevage
-    return true // communes
+    return true
   })
-  const { addToast } = useNotification()
-  const [searchParams] = useSearchParams()
 
   const [depenses, setDepenses] = useState([])
   const [campagnes, setCampagnes] = useState([])
   const [cycles, setCycles] = useState([])
+  const [ateliers, setAteliers] = useState([])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingId, setEditingId] = useState(null)
+  
   const [filterCat, setFilterCat] = useState('')
+  const [filterAtelier, setFilterAtelier] = useState('')
 
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     montant: '',
     categorie: 'semences',
     description: '',
+    atelierId: 'atl_mais_2026',
     campagneId: '',
     cycleId: '',
   })
@@ -50,6 +52,7 @@ export default function DepensesPage() {
       setDepenses(DataService.list('depenses', { userId: user.id }))
       setCampagnes(DataService.list('campagnes', { userId: user.id }))
       setCycles(DataService.list('cycles_elevage', { userId: user.id }))
+      setAteliers(AtelierService.getAteliers(user.id))
     }
   }
 
@@ -67,6 +70,7 @@ export default function DepensesPage() {
       montant: '',
       categorie: 'semences',
       description: '',
+      atelierId: ateliers[0]?.id || 'atl_mais_2026',
       campagneId: campagnes[0]?.id || '',
       cycleId: '',
     })
@@ -106,9 +110,12 @@ export default function DepensesPage() {
     loadData()
   }
 
-  const filteredDepenses = filterCat
-    ? depenses.filter(d => d.categorie === filterCat)
-    : depenses
+  // Filtrage par Catégorie ET par Atelier d'Activité
+  const filteredDepenses = depenses.filter(d => {
+    const matchCat = !filterCat || d.categorie === filterCat
+    const matchAtelier = !filterAtelier || d.atelierId === filterAtelier || (!d.atelierId && filterAtelier === 'atl_mais_2026')
+    return matchCat && matchAtelier
+  })
 
   const totalFiltered = filteredDepenses.reduce((s, d) => s + (Number(d.montant) || 0), 0)
 
@@ -117,6 +124,17 @@ export default function DepensesPage() {
       header: 'Date',
       accessor: 'date',
       render: (r) => formatDate(r.date),
+    },
+    {
+      header: 'Atelier',
+      render: (r) => {
+        const atl = ateliers.find(a => a.id === r.atelierId)
+        return (
+          <span className="badge badge-primary flex items-center gap-1 text-xs">
+            <Layers size={10} /> {atl?.nom || 'Atelier Maïs 2026'}
+          </span>
+        )
+      }
     },
     {
       header: 'Catégorie',
@@ -130,20 +148,6 @@ export default function DepensesPage() {
       header: 'Description',
       accessor: 'description',
       render: (r) => r.description || '-',
-    },
-    {
-      header: 'Rattaché à',
-      render: (r) => {
-        if (r.campagneId) {
-          const c = campagnes.find(x => x.id === r.campagneId)
-          return <span className="text-xs text-primary font-medium">{c?.nom || 'Campagne'}</span>
-        }
-        if (r.cycleId) {
-          const cy = cycles.find(x => x.id === r.cycleId)
-          return <span className="text-xs text-yellow-700 font-medium">{cy?.nom || 'Élevage'}</span>
-        }
-        return <span className="text-xs text-muted">Général</span>
-      },
     },
     {
       header: 'Montant',
@@ -171,11 +175,11 @@ export default function DepensesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="page-header-row">
+      <div className="page-header-row flex flex-col md:flex-row justify-between md:items-center gap-4">
         <div>
-          <h1 className="page-title">Mes Dépenses</h1>
+          <h1 className="page-title">Mes Dépenses par Atelier</h1>
           <p className="page-subtitle">
-            Total des dépenses : <strong className="text-danger">{formatMontant(totalFiltered)}</strong>
+            Total affiché : <strong className="text-danger">{formatMontant(totalFiltered)}</strong>
           </p>
         </div>
         <button className="btn btn-danger btn-lg" onClick={handleOpenCreate}>
@@ -183,29 +187,54 @@ export default function DepensesPage() {
         </button>
       </div>
 
-      {/* Filter Bar */}
-      <div className="filter-bar">
-        <label className="text-sm font-medium flex items-center gap-2">
-          <Filter size={16} /> Filtrer par catégorie:
-        </label>
-        <select
-          className="form-select"
-          value={filterCat}
-          onChange={(e) => setFilterCat(e.target.value)}
-        >
-          <option value="">Toutes les catégories</option>
-          {categoriesFiltrees.map((c) => (
-            <option key={c.value} value={c.value}>{c.label}</option>
-          ))}
-        </select>
+      {/* Filter Bar par Atelier et par Catégorie */}
+      <div className="card card-body bg-base-100 p-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="text-xs font-semibold text-muted flex items-center gap-1 mb-1">
+              <Layers size={14} className="text-primary" /> Filtrer par Atelier d'Activité :
+            </label>
+            <select
+              className="form-select font-semibold"
+              value={filterAtelier}
+              onChange={(e) => setFilterAtelier(e.target.value)}
+            >
+              <option value="">Tous les Ateliers d'exploitation</option>
+              {ateliers.map(a => (
+                <option key={a.id} value={a.id}>{a.nom}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-muted flex items-center gap-1 mb-1">
+              <Filter size={14} /> Filtrer par Catégorie :
+            </label>
+            <select
+              className="form-select"
+              value={filterCat}
+              onChange={(e) => setFilterCat(e.target.value)}
+            >
+              <option value="">Toutes les catégories</option>
+              {categoriesFiltrees.map((c) => (
+                <option key={c.value} value={c.value}>{c.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
       </div>
 
       <div className="card card-body">
         <DataTable
           columns={columns}
           data={filteredDepenses}
-          emptyTitle="Aucune dépense enregistrée"
-          emptyDescription="Ajoutez votre première dépense en quelques secondes pour suivre vos coûts."
+          emptyTitle="Aucune dépense enregistrée pour cet atelier"
+          emptyDescription="Chaque dépense enregistrée est automatiquement rattachée à son atelier pour dégager votre marge exacte."
+          emptyAction={
+            <button className="btn btn-danger btn-sm" onClick={handleOpenCreate}>
+              <Plus size={14} /> Ajouter une dépense
+            </button>
+          }
         />
       </div>
 
@@ -213,9 +242,25 @@ export default function DepensesPage() {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={editingId ? 'Modifier la dépense' : 'Ajouter une nouvelle dépense'}
+        title={editingId ? 'Modifier la dépense' : 'Ajouter une dépense d\'Atelier'}
       >
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="form-group border p-3 rounded-lg bg-emerald-50 border-emerald-200">
+            <label className="form-label font-semibold flex items-center gap-2 text-emerald-900">
+              <Layers size={16} className="text-emerald-700" /> Atelier d'Attribution Obligatoire *
+            </label>
+            <select
+              className="form-select font-bold text-gray-900"
+              required
+              value={formData.atelierId}
+              onChange={(e) => setFormData({ ...formData, atelierId: e.target.value })}
+            >
+              {ateliers.map((a) => (
+                <option key={a.id} value={a.id}>{a.nom} ({a.type === 'vegetal' ? 'Culture' : a.type === 'animal' ? 'Élevage' : 'Structure'})</option>
+              ))}
+            </select>
+          </div>
+
           <div className="form-row">
             <div className="form-group">
               <label className="form-label">Montant (FCFA) *</label>
@@ -255,40 +300,6 @@ export default function DepensesPage() {
             </select>
           </div>
 
-          {/* Rattacher à une campagne — agriculture seulement */}
-          {isAgri && campagnes.length > 0 && (
-            <div className="form-group">
-              <label className="form-label">Rattacher à une campagne (Optionnel)</label>
-              <select
-                className="form-select"
-                value={formData.campagneId}
-                onChange={(e) => setFormData({ ...formData, campagneId: e.target.value, cycleId: '' })}
-              >
-                <option value="">Aucune (Dépense générale)</option>
-                {campagnes.map((c) => (
-                  <option key={c.id} value={c.id}>{c.nom} ({c.culture})</option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Rattacher à un cycle d'élevage — élevage seulement */}
-          {isElevage && cycles.length > 0 && (
-            <div className="form-group">
-              <label className="form-label">Rattacher à un cycle d'élevage (Optionnel)</label>
-              <select
-                className="form-select"
-                value={formData.cycleId}
-                onChange={(e) => setFormData({ ...formData, cycleId: e.target.value, campagneId: '' })}
-              >
-                <option value="">Aucun</option>
-                {cycles.map((cy) => (
-                  <option key={cy.id} value={cy.id}>{cy.nom} ({cy.typeElevage})</option>
-                ))}
-              </select>
-            </div>
-          )}
-
           <div className="form-group">
             <label className="form-label">Description / Détails</label>
             <input
@@ -296,7 +307,7 @@ export default function DepensesPage() {
               className="form-input"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="ex: Achat de 4 sacs de NPK auprès du fournisseur"
+              placeholder="ex: Achat provende volailles / engrais maïs"
             />
           </div>
 

@@ -3,6 +3,8 @@
  * Peut être facilement remplacée par des appels API REST
  */
 
+import OfflineSyncService from './OfflineSyncService'
+
 const PREFIX = 'agrifin_'
 
 function getStore(collection) {
@@ -25,9 +27,16 @@ const DataService = {
       id: data.id || (Date.now().toString(36) + Math.random().toString(36).substr(2, 9)),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      offlineCreated: !OfflineSyncService.isOnline()
     }
     items.push(newItem)
     setStore(collection, items)
+
+    // Enregistrer dans la queue offline si hors ligne
+    if (!OfflineSyncService.isOnline()) {
+      OfflineSyncService.enqueue('CREATE', collection, newItem)
+    }
+
     return newItem
   },
 
@@ -53,6 +62,11 @@ const DataService = {
       updatedAt: new Date().toISOString(),
     }
     setStore(collection, items)
+
+    if (!OfflineSyncService.isOnline()) {
+      OfflineSyncService.enqueue('UPDATE', collection, items[index])
+    }
+
     return items[index]
   },
 
@@ -63,6 +77,11 @@ const DataService = {
     const items = getStore(collection)
     const filtered = items.filter(item => item.id !== id)
     setStore(collection, filtered)
+
+    if (!OfflineSyncService.isOnline()) {
+      OfflineSyncService.enqueue('DELETE', collection, { id })
+    }
+
     return filtered.length < items.length
   },
 

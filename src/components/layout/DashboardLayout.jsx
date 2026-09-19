@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth, useActivite } from '../../contexts/AuthContext'
 import { useNotification } from '../../contexts/NotificationContext'
+import OfflineSyncService from '../../services/OfflineSyncService'
 
 import {
   Sprout,
@@ -28,18 +29,55 @@ import {
   ChevronDown,
   Leaf,
   Layers,
+  Wifi,
+  WifiOff,
+  RefreshCw,
 } from 'lucide-react'
 import QuickActions from '../ui/QuickActions'
 
 export default function DashboardLayout({ children }) {
   const { user, logout } = useAuth()
   const { isAgri, isElevage, typeActivite } = useActivite()
-  const { unreadCount } = useNotification()
+  const { unreadCount, addToast } = useNotification()
   const location = useLocation()
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [userDropdownOpen, setUserDropdownOpen] = useState(false)
   const dropdownRef = useRef(null)
+
+  // État Réseau & Synchronisation Offline
+  const [networkState, setNetworkState] = useState({
+    isOnline: OfflineSyncService.isOnline(),
+    pendingCount: OfflineSyncService.getQueue().length
+  })
+
+  useEffect(() => {
+    const unsubscribe = OfflineSyncService.subscribe(({ isOnline, pendingCount }) => {
+      setNetworkState(prev => {
+        // Détecte la reconnexion automatique
+        if (!prev.isOnline && isOnline && pendingCount > 0) {
+          OfflineSyncService.syncPendingOperations((count) => {
+            addToast(`Connexion rétablie : ${count} opération(s) hors-ligne synchronisée(s) !`, 'success')
+          })
+        }
+        return { isOnline, pendingCount }
+      })
+    })
+    return () => unsubscribe()
+  }, [addToast])
+
+  const handleManualSync = async () => {
+    if (!networkState.isOnline) {
+      addToast('Vous êtes actuellement en mode hors-ligne.', 'warning')
+      return
+    }
+    const res = await OfflineSyncService.syncPendingOperations((count) => {
+      addToast(`${count} opération(s) synchronisée(s) avec succès !`, 'success')
+    })
+    if (res.syncedCount === 0) {
+      addToast('Toutes vos données sont déjà synchronisées.', 'info')
+    }
+  }
 
   // Ferme le dropdown en cliquant en dehors
   useEffect(() => {
@@ -56,7 +94,6 @@ export default function DashboardLayout({ children }) {
 
   const isCoop = user?.role === 'cooperative'
 
-  // Libellé du type d'activité pour affichage
   const activiteLabel = {
     agriculture: 'Agriculture',
     elevage: 'Élevage',
@@ -68,7 +105,7 @@ export default function DashboardLayout({ children }) {
     : typeActivite === 'mixte' ? Layers
     : Sprout
 
-  // Navigation dynamique : masquer les sections non pertinentes au profil
+  // Navigation dynamique
   const buildExploitantNav = () => {
     const nav = [
       {
@@ -80,7 +117,6 @@ export default function DashboardLayout({ children }) {
       },
     ]
 
-    // Section opérationnelle — filtrée selon l'activité
     const opsItems = []
     if (isAgri) {
       opsItems.push({ path: '/dashboard/parcelles', label: 'Mes parcelles', icon: Map })
@@ -97,30 +133,29 @@ export default function DashboardLayout({ children }) {
     })
 
     nav.push({
-      group: 'FINANCES & COMPTES',
+      group: 'COMPTABILITÉ PAR ATELIER',
       items: [
-        { path: '/dashboard/depenses', label: 'Mes dépenses', icon: ArrowDownCircle },
-        { path: '/dashboard/recettes', label: 'Mes recettes', icon: ArrowUpCircle },
-        { path: '/dashboard/rentabilite', label: 'Résultats & Rentabilité', icon: TrendingUp },
-        { path: '/dashboard/historique', label: 'Historique', icon: History },
+        { path: '/dashboard/depenses', label: 'Dépenses d\'Atelier', icon: ArrowDownCircle },
+        { path: '/dashboard/recettes', label: 'Recettes d\'Atelier', icon: ArrowUpCircle },
+        { path: '/dashboard/historique', label: 'Historique des flux', icon: History },
+        { path: '/dashboard/rentabilite', label: 'Marge par Atelier', icon: TrendingUp },
       ],
     })
 
     nav.push({
-      group: 'FINANCEMENT & DOCS',
+      group: 'FINANCEMENT & DOSSIER',
       items: [
-        { path: '/dashboard/documents', label: 'Mes documents', icon: FileText },
-        { path: '/dashboard/financement', label: 'Financement', icon: Landmark },
-        { path: '/dashboard/autorisations', label: 'Partages & Autorisations', icon: ShieldCheck },
+        { path: '/dashboard/compte-exploitation', label: 'Compte exploitation', icon: FileText },
+        { path: '/dashboard/demande-credit', label: 'Demande de crédit', icon: Landmark },
       ],
     })
 
     return nav
   }
 
-  const coopNav = [
+  const buildCoopNav = () => [
     {
-      group: 'ESPACE COOPÉRATIVE',
+      group: 'GESTION COOPÉRATIVE',
       items: [
         { path: '/cooperative/dashboard', label: 'Tableau de bord coop', icon: LayoutDashboard },
         { path: '/cooperative/membres', label: 'Gestion des membres', icon: Users },
@@ -130,71 +165,64 @@ export default function DashboardLayout({ children }) {
     },
   ]
 
-  const currentNav = isCoop ? coopNav : buildExploitantNav()
+  const currentNav = isCoop ? buildCoopNav() : buildExploitantNav()
+
+  const mobileNavItems = isCoop ? [
+    { path: '/cooperative/dashboard', icon: LayoutDashboard, label: 'Accueil' },
+    { path: '/cooperative/membres', icon: Users, label: 'Membres' },
+    { path: '/cooperative/campagnes', icon: Calendar, label: 'Campagnes' },
+    { path: '/cooperative/intrants', icon: Package, label: 'Intrants' },
+  ] : [
+    { path: '/dashboard', icon: LayoutDashboard, label: 'Accueil' },
+    { path: '/dashboard/depenses', icon: ArrowDownCircle, label: 'Dépenses' },
+    { path: '/dashboard/recettes', icon: ArrowUpCircle, label: 'Recettes' },
+    { path: '/dashboard/rentabilite', icon: TrendingUp, label: 'Ateliers' },
+  ]
+
+  const isActive = (path) => location.pathname === path
 
   const handleLogout = () => {
     logout()
     navigate('/connexion')
   }
 
-  const isActive = (path) => location.pathname === path
-
-  // Mobile bottom nav adapté selon l'activité
-  const mobileNavItems = [
-    { path: isCoop ? '/cooperative/dashboard' : '/dashboard', icon: LayoutDashboard, label: 'Accueil' },
-    ...(isAgri && !isCoop ? [{ path: '/dashboard/campagnes', icon: Calendar, label: 'Campagnes' }] : []),
-    ...(isElevage && !isCoop ? [{ path: '/dashboard/cycles-elevage', icon: Bird, label: 'Élevage' }] : []),
-    { path: isCoop ? '/cooperative/dashboard' : '/dashboard/depenses', icon: ArrowDownCircle, label: 'Dépenses' },
-    { path: isCoop ? '/cooperative/dashboard' : '/dashboard/recettes', icon: ArrowUpCircle, label: 'Recettes' },
-    { path: '/dashboard/documents', icon: FileText, label: 'Docs' },
-  ].slice(0, 5) // max 5 éléments dans la bottom nav
-
-  const ActiviteIcon = activiteIcon
+  const ActiviteBadgeIcon = activiteIcon
 
   return (
     <div className="dashboard-layout">
-      {/* Mobile Sidebar Overlay */}
+      {/* Overlay mobile */}
       {sidebarOpen && (
-        <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />
+        <div
+          className="sidebar-overlay lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
       )}
 
-      {/* Sidebar Navigation */}
+      {/* Sidebar */}
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
-          <Link to={isCoop ? '/cooperative/dashboard' : '/dashboard'} className="logo">
+          <Link to="/" className="logo">
             <div className="logo-icon">
               <Sprout size={22} />
             </div>
-            <span>AgriFin</span>
+            <span className="logo-text">AgriFin</span>
           </Link>
+          <button
+            className="btn btn-ghost btn-icon lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          >
+            <X size={20} />
+          </button>
         </div>
 
-        {/* Badge activité dans la sidebar (exploitants seulement) */}
-        {!isCoop && typeActivite && (
-          <div style={{
-            margin: '0 12px 8px',
-            padding: '8px 12px',
-            borderRadius: '8px',
-            background: typeActivite === 'agriculture' ? '#E8F5E9'
-              : typeActivite === 'elevage' ? '#FFF3E0'
-              : '#E3F2FD',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-          }}>
-            <ActiviteIcon size={14} color={
-              typeActivite === 'agriculture' ? '#2E7D32'
-              : typeActivite === 'elevage' ? '#E65100'
-              : '#1565C0'
-            } />
-            <span style={{
-              fontSize: '12px',
-              fontWeight: 600,
-              color: typeActivite === 'agriculture' ? '#2E7D32'
-                : typeActivite === 'elevage' ? '#E65100'
-                : '#1565C0',
-            }}>
-              {activiteLabel}
+        {!isCoop && (
+          <div className="px-4 py-2 my-2 mx-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ActiviteBadgeIcon size={16} className="text-emerald-700" />
+              <span className="text-xs font-bold text-emerald-900">{activiteLabel}</span>
+            </div>
+            <span className="text-[10px] uppercase font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">
+              Profil Actif
             </span>
           </div>
         )}
@@ -260,8 +288,41 @@ export default function DashboardLayout({ children }) {
           </div>
         </div>
 
-        <div className="dashboard-header-right">
-          {/* Notifications Button — masqué pour les coops */}
+        <div className="dashboard-header-right flex items-center gap-2">
+          {/* BADGE RESEAU OFFLINE-FIRST (DEMANDE UTILISATEUR) */}
+          <div 
+            onClick={handleManualSync}
+            className={`cursor-pointer px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all border ${
+              networkState.isOnline 
+                ? networkState.pendingCount > 0 
+                  ? 'bg-amber-50 text-amber-800 border-amber-300' 
+                  : 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                : 'bg-orange-100 text-orange-900 border-orange-400 animate-pulse'
+            }`}
+            title="Cliquez pour forcer la synchronisation"
+          >
+            {networkState.isOnline ? (
+              <>
+                <Wifi size={13} className="text-emerald-600" />
+                <span className="hidden sm:inline">En Ligne</span>
+                {networkState.pendingCount > 0 && (
+                  <span className="badge badge-warning text-[10px] px-1.5 py-0">
+                    {networkState.pendingCount} synchro...
+                  </span>
+                )}
+              </>
+            ) : (
+              <>
+                <WifiOff size={13} className="text-orange-600" />
+                <span>Hors-Ligne</span>
+                <span className="badge badge-warning text-[10px] px-1.5 py-0">
+                  {networkState.pendingCount} en attente
+                </span>
+              </>
+            )}
+          </div>
+
+          {/* Notifications Button */}
           {!isCoop && (
             <Link to="/dashboard/notifications" className="btn btn-ghost btn-icon relative">
               <Bell size={20} />
@@ -331,11 +392,11 @@ export default function DashboardLayout({ children }) {
       </header>
 
       {/* Main Content Area */}
-      <main className="dashboard-main">
+      <main className="dashboard-main pb-20 md:pb-6">
         {children}
       </main>
 
-      {/* Mobile Bottom Navigation — dynamique */}
+      {/* Mobile Bottom Navigation — ergonomie terrain tactile */}
       <nav className="mobile-bottom-nav">
         {mobileNavItems.map((item) => {
           const Icon = item.icon
@@ -345,7 +406,7 @@ export default function DashboardLayout({ children }) {
               to={item.path}
               className={`mobile-nav-item ${isActive(item.path) ? 'active' : ''}`}
             >
-              <Icon />
+              <Icon size={20} />
               <span>{item.label}</span>
             </Link>
           )
