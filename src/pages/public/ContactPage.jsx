@@ -50,7 +50,7 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <h4 className="font-semibold">Téléphone / WhatsApp</h4>
-                    <p className="text-sm text-muted">+228 90 12 34 56</p>
+                    <a href="tel:+22893895722" className="text-sm text-muted hover:text-primary transition-colors">+228 93 89 57 22</a>
                   </div>
                 </div>
 
@@ -60,7 +60,7 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <h4 className="font-semibold">Email</h4>
-                    <p className="text-sm text-muted">contact@agrifin.tg</p>
+                    <a href="mailto:pointalex82@gmail.com" className="text-sm text-muted hover:text-primary transition-colors">pointalex82@gmail.com</a>
                   </div>
                 </div>
               </div>

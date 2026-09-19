@@ -51,12 +51,12 @@ export default function PublicFooter() {
               <span className="flex items-center gap-2 text-sm opacity-75">
                 <MapPin size={16} /> Lomé & Tsévié, Togo
               </span>
-              <span className="flex items-center gap-2 text-sm opacity-75">
-                <Phone size={16} /> +228 90 00 00 00
-              </span>
-              <span className="flex items-center gap-2 text-sm opacity-75">
-                <Mail size={16} /> contact@agrifin.tg
-              </span>
+              <a href="tel:+22893895722" className="flex items-center gap-2 text-sm opacity-75 hover:opacity-100 transition-opacity">
+                <Phone size={16} /> +228 93 89 57 22
+              </a>
+              <a href="mailto:pointalex82@gmail.com" className="flex items-center gap-2 text-sm opacity-75 hover:opacity-100 transition-opacity">
+                <Mail size={16} /> pointalex82@gmail.com
+              </a>
             </div>
           </div>
         </div>
